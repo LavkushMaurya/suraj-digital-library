@@ -1235,14 +1235,18 @@ footer {
     object-fit: cover;
 }
 
-.footer-logo strong {
-    display: block;
+.footer-logo strong { 
+    display: block; 
     font-size: 22px;
-}
-
-.footer-logo small {
-    font-size: 7px;
+    line-height: 1;
+    margin-bottom: 1px;
+} 
+ 
+.footer-logo small { 
+    display: block;
+    font-size: 7px; 
     letter-spacing: .7px;
+    line-height: 1;
 }
 
 .footer-column p {
