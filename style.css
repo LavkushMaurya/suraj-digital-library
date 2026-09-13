@@ -1828,10 +1828,19 @@ footer {
         width: 100%;
     }
 
-    .footer-wrapper {
-        grid-template-columns: 1fr;
-    }
+   .footer-wrapper { 
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 25px 10px;
+}
 
+.footer-column:first-child {
+    grid-column: 1 / -1;
+}
+
+.footer-column:last-child {
+    grid-column: auto;
+    text-align: left;
+}
     .service-list {
         grid-template-columns: 1fr;
     }
