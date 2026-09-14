@@ -560,7 +560,6 @@ function openPayment() {
 /* ==========================================
    DEMO PAYMENT
 ========================================== */
-
 async function completePayment() {
 
     const booking = window.pendingBooking;
@@ -572,7 +571,8 @@ async function completePayment() {
 
     try {
 
-        const response = await fetch(
+        // STEP 1: Create booking in our backend
+        const bookingResponse = await fetch(
             "https://suraj-digital.netlify.app/.netlify/functions/create-booking",
             {
                 method: "POST",
@@ -592,46 +592,162 @@ async function completePayment() {
             }
         );
 
-        const result = await response.json();
+        const bookingResult =
+            await bookingResponse.json();
 
-        console.log("Backend response:", result);
+        console.log(
+            "Booking response:",
+            bookingResult
+        );
 
-        if (!response.ok || !result.success) {
+        if (
+            !bookingResponse.ok ||
+            !bookingResult.success
+        ) {
 
             alert(
-                result.message ||
+                bookingResult.message ||
                 "Unable to create booking."
             );
 
             return;
         }
 
-        /*
-         * Backend booking created successfully.
-         * Payment integration will be connected next.
-         */
+        const bookingNumber =
+            bookingResult.booking.booking_number;
 
-        alert(
-            "Booking created successfully.\n\n" +
-            "Booking Number: " +
-            result.booking.booking_number +
-            "\n\n" +
-            "Payment integration will be connected next."
+
+        // STEP 2: Create Razorpay order
+        const orderResponse = await fetch(
+            "https://suraj-digital.netlify.app/.netlify/functions/create-order",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    bookingNumber: bookingNumber,
+                    amount: booking.amount
+                })
+            }
         );
 
-        closePayment();
+        const orderResult =
+            await orderResponse.json();
 
-        window.pendingBooking = null;
+        console.log(
+            "Razorpay order response:",
+            orderResult
+        );
+
+        if (
+            !orderResponse.ok ||
+            !orderResult.success
+        ) {
+
+            alert(
+                orderResult.message ||
+                "Unable to create payment order."
+            );
+
+            return;
+        }
+
+
+        // STEP 3: Open Razorpay Checkout
+
+        const options = {
+
+            key: "rzp_test_Tbpu9ZZFWUWbsm",
+
+            amount:
+                orderResult.order.amount,
+
+            currency:
+                orderResult.order.currency,
+
+            name:
+                "Suraj Digital Library",
+
+            description:
+                "Monthly Library Seat Booking",
+
+            order_id:
+                orderResult.order.id,
+
+            prefill: {
+
+                name:
+                    booking.name,
+
+                contact:
+                    booking.mobile,
+
+                email:
+                    booking.email || ""
+            },
+
+            notes: {
+
+                booking_number:
+                    bookingNumber,
+
+                seat:
+                    String(booking.seat)
+            },
+
+            theme: {
+
+                color: "#1f4f8f"
+            },
+
+            handler: function (paymentResponse) {
+
+                console.log(
+                    "Razorpay payment response:",
+                    paymentResponse
+                );
+
+                alert(
+                    "Payment completed.\n\n" +
+                    "Payment ID: " +
+                    paymentResponse.razorpay_payment_id +
+                    "\n\n" +
+                    "Payment verification will be connected next."
+                );
+
+            },
+
+            modal: {
+
+                ondismiss: function () {
+
+                    console.log(
+                        "Razorpay checkout closed."
+                    );
+
+                }
+            }
+        };
+
+
+        const razorpay =
+            new Razorpay(options);
+
+        razorpay.open();
+
 
     } catch (error) {
 
         console.error(
-            "Booking request error:",
+            "Payment error:",
             error
         );
 
         alert(
-            "Unable to connect to the booking server. Please try again."
+            "Unable to connect to the payment server. Please try again."
         );
     }
 }
