@@ -1,0 +1,24 @@
+{
+  "name": "suraj-digital-library",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LavkushMaurya/suraj-digital-library.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/LavkushMaurya/suraj-digital-library/issues"
+  },
+  "homepage": "https://github.com/LavkushMaurya/suraj-digital-library#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0"
+  }
+}
