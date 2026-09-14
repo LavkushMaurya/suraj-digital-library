@@ -4,33 +4,39 @@
 
 const TOTAL_SEATS = 20;
 
+const SUPABASE_URL =
+    "https://txynvqoiqrfwcpekgyzk.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_1Yog7uDXq_2U0Uj63WvqAg_SldipMkc";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
 let selectedSeat = null;
 
-let bookedSeats =
-    JSON.parse(
-        localStorage.getItem(
-            "surajLibrarySeats"
-        )
-    ) || [];
+let bookedSeats = [];
+
+let seatsData = [];
 
 
 /* ==========================================
    PAGE LOAD
 ========================================== */
-
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
-        createSeats();
-
-        updateSeatCount();
+        await loadSeats();
 
         setupDate();
-
         setupPlan();
-
         setupMobileMenu();
+
+        setupRealtimeSeats();
 
     }
 );
@@ -90,34 +96,27 @@ function createSeats() {
             "rightSeats"
         );
 
-
     left.innerHTML = "";
-
     right.innerHTML = "";
 
 
-    for (
-        let i = 1;
-        i <= TOTAL_SEATS;
-        i++
-    ) {
+    seatsData.forEach(seatData => {
+
+        const number =
+            seatData.seat_number;
 
         const button =
             document.createElement(
                 "button"
             );
 
+        button.className = "seat";
 
-        button.className =
-            "seat";
-
-
-        button.dataset.seat =
-            i;
+        button.dataset.seat = number;
 
 
         if (
-            bookedSeats.includes(i)
+            seatData.status === "booked"
         ) {
 
             button.classList.add(
@@ -126,19 +125,16 @@ function createSeats() {
 
             button.disabled = true;
 
-
             button.innerHTML = `
-
                 <i class="fa-solid fa-lock"></i>
 
                 <strong>
-                    Seat ${formatSeat(i)}
+                    Seat ${formatSeat(number)}
                 </strong>
 
                 <small>
                     BOOKED
                 </small>
-
             `;
 
         }
@@ -149,31 +145,27 @@ function createSeats() {
                 "available"
             );
 
-
             button.innerHTML = `
-
                 <i class="fa-solid fa-chair"></i>
 
                 <strong>
-                    Seat ${formatSeat(i)}
+                    Seat ${formatSeat(number)}
                 </strong>
 
                 <small>
                     AVAILABLE
                 </small>
-
             `;
-
 
             button.addEventListener(
                 "click",
-                () => selectSeat(i)
+                () => selectSeat(number)
             );
 
         }
 
 
-        if (i <= 10) {
+        if (number <= 10) {
 
             left.appendChild(button);
 
@@ -185,19 +177,101 @@ function createSeats() {
 
         }
 
-    }
+    });
+
+    updateSeatCount();
 
 }
 
 
 /* ==========================================
-   SELECT SEAT
+   LOAD SEATS FROM SUPABASE
 ========================================== */
 
+async function loadSeats() {
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("seats")
+        .select("*")
+        .order(
+            "seat_number",
+            {
+                ascending: true
+            }
+        );
+
+
+    if (error) {
+
+        console.error(
+            "Supabase seat error:",
+            error
+        );
+
+        alert(
+            "Unable to load seats. Please try again."
+        );
+
+        return;
+
+    }
+
+
+    seatsData = data || [];
+
+    createSeats();
+
+}
+
+
+/* ==========================================
+   REAL-TIME SEAT UPDATES
+========================================== */
+
+function setupRealtimeSeats() {
+
+    supabaseClient
+        .channel("seats-realtime")
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "seats"
+            },
+            payload => {
+
+                console.log(
+                    "Seat update:",
+                    payload
+                );
+
+                loadSeats();
+
+            }
+        )
+        .subscribe();
+
+}
+
+/* ==========================================
+   SELECT SEAT
+========================================== */
 function selectSeat(number) {
 
+    const seatData =
+        seatsData.find(
+            seat =>
+                seat.seat_number === number
+        );
+
+
     if (
-        bookedSeats.includes(number)
+        !seatData ||
+        seatData.status === "booked"
     ) {
 
         return;
@@ -209,19 +283,17 @@ function selectSeat(number) {
         .querySelectorAll(
             ".seat.selected"
         )
-        .forEach(
-            seat => {
+        .forEach(seat => {
 
-                seat.classList.remove(
-                    "selected"
-                );
+            seat.classList.remove(
+                "selected"
+            );
 
-                seat.classList.add(
-                    "available"
-                );
+            seat.classList.add(
+                "available"
+            );
 
-            }
-        );
+        });
 
 
     selectedSeat = number;
@@ -233,13 +305,17 @@ function selectSeat(number) {
         );
 
 
-    seat.classList.remove(
-        "available"
-    );
+    if (seat) {
 
-    seat.classList.add(
-        "selected"
-    );
+        seat.classList.remove(
+            "available"
+        );
+
+        seat.classList.add(
+            "selected"
+        );
+
+    }
 
 
     document.getElementById(
@@ -612,18 +688,23 @@ function completePayment() {
 
 function updateSeatCount() {
 
-    const booked =
-        bookedSeats.length;
+    const total =
+        seatsData.length;
 
+    const booked =
+        seatsData.filter(
+            seat =>
+                seat.status === "booked"
+        ).length;
 
     const available =
-        TOTAL_SEATS - booked;
+        total - booked;
 
 
     document.getElementById(
         "totalSeats"
     ).textContent =
-        TOTAL_SEATS;
+        total || TOTAL_SEATS;
 
 
     document.getElementById(
