@@ -561,124 +561,79 @@ function openPayment() {
    DEMO PAYMENT
 ========================================== */
 
-function completePayment() {
+async function completePayment() {
 
-    const booking =
-        window.pendingBooking;
-
+    const booking = window.pendingBooking;
 
     if (!booking) {
-
+        alert("Booking information is missing.");
         return;
-
     }
 
+    try {
 
-    if (
-        bookedSeats.includes(
-            booking.seat
-        )
-    ) {
+        const response = await fetch(
+            "https://suraj-digital.netlify.app/.netlify/functions/create-booking",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    seat: booking.seat,
+                    name: booking.name,
+                    mobile: booking.mobile,
+                    email: booking.email || "",
+                    date: booking.date,
+                    amount: booking.amount
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        console.log("Backend response:", result);
+
+        if (!response.ok || !result.success) {
+
+            alert(
+                result.message ||
+                "Unable to create booking."
+            );
+
+            return;
+        }
+
+        /*
+         * Backend booking created successfully.
+         * Payment integration will be connected next.
+         */
 
         alert(
-            "This seat is already booked."
+            "Booking created successfully.\n\n" +
+            "Booking Number: " +
+            result.booking.booking_number +
+            "\n\n" +
+            "Payment integration will be connected next."
         );
 
         closePayment();
 
-        createSeats();
+        window.pendingBooking = null;
 
-        return;
+    } catch (error) {
 
+        console.error(
+            "Booking request error:",
+            error
+        );
+
+        alert(
+            "Unable to connect to the booking server. Please try again."
+        );
     }
-
-
-    bookedSeats.push(
-        booking.seat
-    );
-
-
-    localStorage.setItem(
-        "surajLibrarySeats",
-        JSON.stringify(
-            bookedSeats
-        )
-    );
-
-
-    createSeats();
-
-    updateSeatCount();
-
-
-    const bookingId =
-        "SDL" +
-        Math.floor(
-            100000 +
-            Math.random() * 900000
-        );
-
-
-    document.getElementById(
-        "bookingId"
-    ).textContent =
-        bookingId;
-
-
-    document.getElementById(
-        "successSeat"
-    ).textContent =
-        "Seat " +
-        formatSeat(
-            booking.seat
-        );
-
-
-    document.getElementById(
-        "successName"
-    ).textContent =
-        booking.name;
-
-
-    document.getElementById(
-        "successDate"
-    ).textContent =
-        formatDate(
-            booking.date
-        );
-
-
-    closePayment();
-
-
-    document.getElementById(
-        "successModal"
-    ).classList.add(
-        "show"
-    );
-
-
-    selectedSeat = null;
-
-
-    document.getElementById(
-        "selectedSeat"
-    ).textContent =
-        "Please select a seat";
-
-
-    document.getElementById(
-        "bookSeatBtn"
-    ).disabled = true;
-
-
-    document.getElementById(
-        "bookingForm"
-    ).reset();
-
-
-    window.pendingBooking = null;
-
 }
 
 
