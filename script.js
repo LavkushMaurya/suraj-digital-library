@@ -657,6 +657,7 @@ async function completePayment() {
 
 
         // STEP 3: Open Razorpay Checkout
+        // UPI ONLY
 
         const options = {
 
@@ -701,6 +702,43 @@ async function completePayment() {
             theme: {
 
                 color: "#1f4f8f"
+            },
+
+            // SHOW ONLY UPI
+            config: {
+
+                display: {
+
+                    blocks: {
+
+                        upi_only: {
+
+                            name: "Pay via UPI",
+
+                            instruments: [
+
+                                {
+                                    method: "upi"
+                                }
+
+                            ]
+
+                        }
+
+                    },
+
+                    sequence: [
+                        "block.upi_only"
+                    ],
+
+                    preferences: {
+
+                        show_default_blocks: false
+
+                    }
+
+                }
+
             },
 
             handler: function (paymentResponse) {
@@ -751,7 +789,6 @@ async function completePayment() {
         );
     }
 }
-
 
 /* ==========================================
    COUNTERS
